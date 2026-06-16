@@ -3,6 +3,7 @@ package com.vrtx.ledgersystem.service;
 import com.vrtx.ledgersystem.entity.Account;
 import com.vrtx.ledgersystem.entity.LedgerEntry;
 import com.vrtx.ledgersystem.entity.Transaction;
+import com.vrtx.ledgersystem.exception.InsufficientFundsException;
 import com.vrtx.ledgersystem.repository.AccountRepository;
 import com.vrtx.ledgersystem.repository.LedgerEntryRepository;
 import com.vrtx.ledgersystem.repository.TransactionRepository;
@@ -60,7 +61,10 @@ public class PaymentService {
         Account feesAccount = accountRepository.findByAccountType(Account.AccountType.FEES)
                 .orElseThrow(() -> new EntityNotFoundException("FEES account not found"));
 
-        // TODO: check balance
+        BigDecimal balance = ledgerEntryRepository.calculateBalance(userAccountId);
+        if (balance.compareTo(amount) < 0) {
+            throw new InsufficientFundsException("Insufficient funds in account: " + userAccountId);
+        }
 
         Transaction transaction = transactionRepository.save(
                 new Transaction(idempotencyKey, "Payment from user to merchant", null, Transaction.TransactionType.PAYMENT));
